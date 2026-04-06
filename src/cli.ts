@@ -213,6 +213,21 @@ export async function runCli() {
       return;
     }
 
+    if (query.startsWith('/steps')) {
+      const parts = query.trim().split(/\s+/);
+      const n = parseInt(parts[1] ?? '', 10);
+      if (isNaN(n) || n < 1 || n > 100) {
+        lastError = `/steps requires a number between 1 and 100 (e.g. /steps 20)`;
+        refreshError();
+        tui.requestRender();
+        return;
+      }
+      agentRunner.setMaxIterations(n);
+      intro.setSteps(n);
+      tui.requestRender();
+      return;
+    }
+
     if (modelSelection.isInSelectionFlow() || agentRunner.pendingApproval || agentRunner.isProcessing) {
       return;
     }
