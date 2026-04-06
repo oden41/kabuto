@@ -59,17 +59,18 @@ export class AgentRunnerController {
     );
   }
 
+  get maxIterations(): number {
+    return this.agentConfig.maxIterations ?? 10;
+  }
+
   setError(error: string | null) {
     this.errorValue = error;
     this.emitChange();
   }
 
-  get maxIterations(): number {
-    return this.agentConfig.maxIterations ?? 10;
-  }
-
   setMaxIterations(n: number) {
     this.agentConfig = { ...this.agentConfig, maxIterations: n };
+    this.emitChange();
   }
 
   respondToApproval(decision: ApprovalDecision) {
