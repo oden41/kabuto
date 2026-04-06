@@ -20,7 +20,7 @@ export class AgentRunnerController {
   private workingStateValue: WorkingState = { status: 'idle' };
   private errorValue: string | null = null;
   private pendingApprovalValue: { tool: string; args: Record<string, unknown> } | null = null;
-  private readonly agentConfig: AgentConfig;
+  private agentConfig: AgentConfig;
   private readonly inMemoryChatHistory: InMemoryChatHistory;
   private readonly onChange?: ChangeListener;
   private abortController: AbortController | null = null;
@@ -62,6 +62,14 @@ export class AgentRunnerController {
   setError(error: string | null) {
     this.errorValue = error;
     this.emitChange();
+  }
+
+  get maxIterations(): number {
+    return this.agentConfig.maxIterations ?? 10;
+  }
+
+  setMaxIterations(n: number) {
+    this.agentConfig = { ...this.agentConfig, maxIterations: n };
   }
 
   respondToApproval(decision: ApprovalDecision) {
