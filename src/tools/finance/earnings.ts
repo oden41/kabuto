@@ -20,6 +20,13 @@ export const getEarnings = new DynamicStructuredTool({
     '日本株の決算発表予定・最新決算情報を取得します。特定銘柄の決算日、または近日中の決算発表スケジュールを確認できます。',
   schema: EarningsInputSchema,
   func: async (input) => {
+    if (!process.env.JQUANTS_API_KEY) {
+      return formatToolResult(
+        { unavailable: true, reason: '決算発表カレンダーはJ-Quants APIキーが必要です。JQUANTS_API_KEYを設定してください。' },
+        [],
+      );
+    }
+
     const params: Record<string, string | number | undefined> = {};
     if (input.code) {
       params.code = input.code.trim().padStart(4, '0');
