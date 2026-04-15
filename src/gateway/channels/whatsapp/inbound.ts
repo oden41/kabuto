@@ -233,7 +233,7 @@ export async function monitorWebInbox(params: {
       }
 
       const body = extractText(message);
-      debugLog(`[inbound] body="${body.slice(0, 50)}..."`);
+      debugLog(`[inbound] bodyLen=${body.length}`);
       if (!body.trim()) {
         debugLog(`[inbound] skipping empty body`);
         continue;
@@ -287,7 +287,7 @@ export async function monitorWebInbox(params: {
         debugLog(`[inbound] skipping append message (read-only, no reply)`);
         continue;
       }
-      debugLog(`[inbound] calling onMessage for ${from}: "${body.slice(0, 30)}..."`);
+      debugLog(`[inbound] calling onMessage for ${from} (${body.length} chars)`);
       await params.onMessage(inbound);
     }
   };

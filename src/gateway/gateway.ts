@@ -42,10 +42,9 @@ function elide(text: string, maxLen: number): string {
 }
 
 async function handleInbound(cfg: GatewayConfig, inbound: WhatsAppInboundMessage): Promise<void> {
-  const bodyPreview = elide(inbound.body.replace(/\n/g, ' '), 50);
   const isGroup = inbound.chatType === 'group';
-  console.log(`Inbound message ${inbound.from} (${inbound.chatType}, ${inbound.body.length} chars): "${bodyPreview}"`);
-  debugLog(`[gateway] handleInbound from=${inbound.from} isGroup=${isGroup} body="${inbound.body.slice(0, 30)}..."`);
+  console.log(`Inbound message ${inbound.from} (${inbound.chatType}, ${inbound.body.length} chars)`);
+  debugLog(`[gateway] handleInbound from=${inbound.from} isGroup=${isGroup} bodyLen=${inbound.body.length}`);
 
   // --- Group-specific: track member, check mention gating ---
   if (isGroup) {
