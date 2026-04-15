@@ -224,6 +224,16 @@ function isRedirectStatus(status: number): boolean {
 }
 
 // Block requests to private/internal IP ranges to prevent SSRF attacks.
+function isPrivateIPv4(a: number, b: number): boolean {
+  if (a === 127) return true;                        // 127.0.0.0/8   loopback
+  if (a === 10) return true;                         // 10.0.0.0/8    private
+  if (a === 172 && b >= 16 && b <= 31) return true;  // 172.16.0.0/12 private
+  if (a === 192 && b === 168) return true;            // 192.168.0.0/16 private
+  if (a === 169 && b === 254) return true;            // 169.254.0.0/16 link-local / cloud metadata
+  if (a === 0) return true;                          // 0.0.0.0/8
+  return false;
+}
+
 function isPrivateHost(hostname: string): boolean {
   // Block obvious private/reserved hostnames
   if (
@@ -240,19 +250,39 @@ function isPrivateHost(hostname: string): boolean {
     ? hostname.slice(1, -1)
     : hostname;
 
-  // IPv6 loopback
+  // IPv6 loopback and unspecified
   if (bare === '::1' || bare === '::') return true;
 
-  // IPv4 checks
+  // IPv6 unique-local (fc00::/7) and link-local (fe80::/10)
+  const firstSegment = bare.split(':')[0]?.toLowerCase() ?? '';
+  if (firstSegment) {
+    const val = parseInt(firstSegment, 16);
+    if (!isNaN(val)) {
+      if ((val & 0xfe00) === 0xfc00) return true;  // fc00::/7
+      if ((val & 0xffc0) === 0xfe80) return true;  // fe80::/10
+    }
+  }
+
+  // IPv4-mapped IPv6 (::ffff:x.x.x.x or ::ffff:HHHH:HHHH)
+  const mappedDottedMatch = bare.match(/^::ffff:(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/i);
+  if (mappedDottedMatch) {
+    const [, a, b] = mappedDottedMatch.map(Number) as [number, number, number, number, number];
+    return isPrivateIPv4(a, b);
+  }
+  const mappedHexMatch = bare.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+  if (mappedHexMatch) {
+    const hi = parseInt(mappedHexMatch[1]!, 16);
+    const lo = parseInt(mappedHexMatch[2]!, 16);
+    const a = (hi >> 8) & 0xff;
+    const b = hi & 0xff;
+    return isPrivateIPv4(a, b);
+  }
+
+  // Plain IPv4 checks
   const ipv4Match = bare.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (ipv4Match) {
     const [, a, b] = ipv4Match.map(Number) as [number, number, number, number, number];
-    if (a === 127) return true;                        // 127.0.0.0/8   loopback
-    if (a === 10) return true;                         // 10.0.0.0/8    private
-    if (a === 172 && b >= 16 && b <= 31) return true;  // 172.16.0.0/12 private
-    if (a === 192 && b === 168) return true;            // 192.168.0.0/16 private
-    if (a === 169 && b === 254) return true;            // 169.254.0.0/16 link-local / cloud metadata
-    if (a === 0) return true;                          // 0.0.0.0/8
+    return isPrivateIPv4(a, b);
   }
 
   return false;
