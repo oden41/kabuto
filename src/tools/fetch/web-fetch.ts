@@ -254,12 +254,15 @@ function isPrivateHost(hostname: string): boolean {
   if (bare === '::1' || bare === '::') return true;
 
   // IPv6 unique-local (fc00::/7) and link-local (fe80::/10)
-  const firstSegment = bare.split(':')[0]?.toLowerCase() ?? '';
-  if (firstSegment) {
-    const val = parseInt(firstSegment, 16);
-    if (!isNaN(val)) {
-      if ((val & 0xfe00) === 0xfc00) return true;  // fc00::/7
-      if ((val & 0xffc0) === 0xfe80) return true;  // fe80::/10
+  // Only check when bare contains a colon (i.e. is actually an IPv6 address)
+  if (bare.includes(':')) {
+    const firstSegment = bare.split(':')[0]?.toLowerCase() ?? '';
+    if (firstSegment) {
+      const val = parseInt(firstSegment, 16);
+      if (!isNaN(val)) {
+        if ((val & 0xfe00) === 0xfc00) return true;  // fc00::/7
+        if ((val & 0xffc0) === 0xfe80) return true;  // fe80::/10
+      }
     }
   }
 
