@@ -41,7 +41,13 @@ export function stripFieldsDeep(value: unknown, fields: readonly string[]): unkn
 }
 
 function getApiKey(): string {
-  return process.env.FINANCIAL_DATASETS_API_KEY || '';
+  const key = process.env.FINANCIAL_DATASETS_API_KEY;
+  if (!key) {
+    throw new Error(
+      '[Financial Datasets API] FINANCIAL_DATASETS_API_KEY is not set.',
+    );
+  }
+  return key;
 }
 
 /**
@@ -54,9 +60,7 @@ async function executeRequest(
 ): Promise<Record<string, unknown>> {
   const apiKey = getApiKey();
 
-  if (!apiKey) {
-    logger.warn(`[Financial Datasets API] call without key: ${label}`);
-  }
+  // apiKey is guaranteed non-empty by getApiKey()
 
   let response: Response;
   try {

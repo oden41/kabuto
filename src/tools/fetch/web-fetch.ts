@@ -223,6 +223,41 @@ function isRedirectStatus(status: number): boolean {
   return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
 }
 
+// Block requests to private/internal IP ranges to prevent SSRF attacks.
+function isPrivateHost(hostname: string): boolean {
+  // Block obvious private/reserved hostnames
+  if (
+    hostname === 'localhost' ||
+    hostname === '[::1]' ||
+    hostname.endsWith('.local') ||
+    hostname.endsWith('.internal')
+  ) {
+    return true;
+  }
+
+  // Strip IPv6 brackets
+  const bare = hostname.startsWith('[') && hostname.endsWith(']')
+    ? hostname.slice(1, -1)
+    : hostname;
+
+  // IPv6 loopback
+  if (bare === '::1' || bare === '::') return true;
+
+  // IPv4 checks
+  const ipv4Match = bare.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4Match) {
+    const [, a, b] = ipv4Match.map(Number) as [number, number, number, number, number];
+    if (a === 127) return true;                        // 127.0.0.0/8   loopback
+    if (a === 10) return true;                         // 10.0.0.0/8    private
+    if (a === 172 && b >= 16 && b <= 31) return true;  // 172.16.0.0/12 private
+    if (a === 192 && b === 168) return true;            // 192.168.0.0/16 private
+    if (a === 169 && b === 254) return true;            // 169.254.0.0/16 link-local / cloud metadata
+    if (a === 0) return true;                          // 0.0.0.0/8
+  }
+
+  return false;
+}
+
 async function fetchWithRedirects(params: {
   url: string;
   maxRedirects: number;
@@ -243,6 +278,9 @@ async function fetchWithRedirects(params: {
     }
     if (!["http:", "https:"].includes(parsedUrl.protocol)) {
       throw new Error("[Web Fetch] Invalid URL: must be http or https");
+    }
+    if (isPrivateHost(parsedUrl.hostname)) {
+      throw new Error("[Web Fetch] Blocked: requests to private/internal addresses are not allowed");
     }
 
     const response = await fetch(parsedUrl.toString(), {
